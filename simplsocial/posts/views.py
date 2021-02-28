@@ -1,12 +1,13 @@
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.contrib import messages
 from django.http import Http404
 from django.views import generic 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from braces.views import SelectRelatedMixin
 # Create your views here
 from posts import models
-from posts import froms
+from posts import forms
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -23,7 +24,7 @@ class UserPosts(generic.ListView):
     def get_queryset(self):
 
         try:
-            self.post.user = User.objects.prefetch_related('posts').get(username__iexact=self.kwargs.get('username'))
+            self.post_user = User.objects.prefetch_related('posts').get(username__iexact=self.kwargs.get('username'))
         
         except User.DoesNotExist:
             raise Http404
@@ -37,7 +38,7 @@ class UserPosts(generic.ListView):
 
 class PostDetail(SelectRelatedMixin,generic.DetailView):
     model = models.Post
-    select_related = ('user',group)
+    select_related = ('user','group')
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -47,7 +48,7 @@ class CreatePost(LoginRequiredMixin,SelectRelatedMixin,generic.CreateView):
     fields = ('message','group')
     model = models.Post
 
-    def form_valid(seld,form):
+    def form_valid(self,form):
         self.object = form.save(commit = False)
         self.object.user = self.request.user
         self.object.save()
@@ -57,7 +58,7 @@ class CreatePost(LoginRequiredMixin,SelectRelatedMixin,generic.CreateView):
 class DeletePost(LoginRequiredMixin,SelectRelatedMixin,generic.DeleteView):
     model = models.Post
     select_related = ('user','group')
-    success_utl = reverse_lazy("posts:all")
+    success_url = reverse_lazy("posts:all")
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -66,6 +67,4 @@ class DeletePost(LoginRequiredMixin,SelectRelatedMixin,generic.DeleteView):
     def delete(self,*args,**kwargs):
         messages.success(self.request,'Post Deleted')
         return super().delete(*args,**kwargs)
-    
-    
     
